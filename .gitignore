@@ -1,0 +1,4 @@
+.venv
+.env
+clave-servicio.json
+__pycache__
