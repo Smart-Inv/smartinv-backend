@@ -10,7 +10,7 @@ router = APIRouter()
 
 # Retrieve all the active users from the database
 @router.get("/get_users/", tags=["users"])
-async def get_users():
+async def get_users(token: str = Depends(get_current_user)):
     try:
         query = db.collection("users").where("is_active", "==", True)
         users = query.stream()
