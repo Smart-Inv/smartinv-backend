@@ -25,7 +25,6 @@ async def get_users(token: str = Depends(get_current_user)):
 async def register_user(user: UserCreate):
     try:
         hashed = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
-
         doc_ref = db.collection("users").document()
         doc_ref.set({
             "full_name": user.full_name,
