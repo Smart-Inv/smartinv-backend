@@ -4,6 +4,7 @@ from google.api_core.exceptions import GoogleAPIError
 import bcrypt
 
 from models.user_models import *
+from utils.token_generation import *
 
 router = APIRouter()
 
@@ -20,8 +21,8 @@ async def get_users():
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
 
 # Adds a new user to the database
-@router.post("/add_user/", tags=["users"])
-async def add_user(user: UserCreate):
+@router.post("/register_user/", tags=["users"])
+async def register_user(user: UserCreate):
     try:
         hashed = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
 
@@ -36,6 +37,41 @@ async def add_user(user: UserCreate):
         })
 
         return {"id": doc_ref.id}
+    except GoogleAPIError as e:
+        raise HTTPException(status_code=500, detail=f"Firestore error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
+    
+@router.get("/login/", tags=["users"])
+def login(user: UserLogin):
+    try:
+        users_ref = db.collection("users")
+        query = users_ref.where("email", "==", user.email).limit(1).stream()
+
+        user_doc = next(query, None)
+        if user_doc is None:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        user_data = user_doc.to_dict()
+        hashed_password = user_data.get("hashed_password")
+
+        if not bcrypt.checkpw(user.password.encode(), hashed_password.encode()):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        token_data = {
+            "sub": user_doc.id,
+            "email": user_data["email"],
+        }
+
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_payload)
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+
     except GoogleAPIError as e:
         raise HTTPException(status_code=500, detail=f"Firestore error: {e}")
     except Exception as e:

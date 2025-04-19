@@ -9,3 +9,8 @@ class UserCreate(BaseModel):
     is_active: bool
     name_company: str
     created_at: datetime
+    
+class UserLogin(BaseModel):
+    "Model used for GET method: logIn user"
+    email: EmailStr
+    password: str
