@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from firestore_client import db
 from google.api_core.exceptions import GoogleAPIError
-from datetime import datetime
+import bcrypt
+
+from models.user_models import *
 
 router = APIRouter()
 
@@ -19,27 +21,21 @@ async def get_users():
 
 # Adds a new user to the database
 @router.post("/add_user/", tags=["users"])
-async def add_user(full_name: str,
-                   email: str, 
-                   password: str, 
-                   is_active: bool,
-                   name_company: str,
-                   created_at: datetime):
+async def add_user(user: UserCreate):
     try:
-        # TODO: Implement real password hashing
-        hashed_password = password
+        hashed = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
 
         doc_ref = db.collection("users").document()
         doc_ref.set({
-            "full_name": full_name,
-            "email": email,
-            "hashed_password": hashed_password,
-            "is_active": is_active,
-            "name_company": name_company,
-            "created_at": created_at
+            "full_name": user.full_name,
+            "email": user.email,
+            "hashed_password": hashed,
+            "is_active": user.is_active,
+            "name_company": user.name_company,
+            "created_at": user.created_at
         })
 
-        return {"id": doc_ref.id}, status_code.HTTP_201_CREATED
+        return {"id": doc_ref.id}
     except GoogleAPIError as e:
         raise HTTPException(status_code=500, detail=f"Firestore error: {e}")
     except Exception as e:
