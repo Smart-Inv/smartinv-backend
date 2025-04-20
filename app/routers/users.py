@@ -41,12 +41,11 @@ async def register_user(user: UserCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
     
-@router.get("/login/", tags=["users"])
-def login(user: UserLogin):
+@router.post("/login", tags=["users"])
+async def login(user: UserLogin):
     try:
         users_ref = db.collection("users")
         query = users_ref.where("email", "==", user.email).limit(1).stream()
-
         user_doc = next(query, None)
         if user_doc is None:
             raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -63,7 +62,7 @@ def login(user: UserLogin):
         }
 
         access_token = create_access_token(token_data)
-        refresh_token = create_refresh_token(token_payload)
+        refresh_token = create_refresh_token(token_data)
 
         return {
             "access_token": access_token,
