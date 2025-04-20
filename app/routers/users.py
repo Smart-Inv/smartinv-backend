@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from firestore_client import db
+from app.firestore_client import db
 from google.api_core.exceptions import GoogleAPIError
 import bcrypt
 
