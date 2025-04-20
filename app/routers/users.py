@@ -3,8 +3,8 @@ from app.firestore_client import db
 from google.api_core.exceptions import GoogleAPIError
 import bcrypt
 
-from models.user_models import *
-from utils.token_generation import *
+from app.models.user_models import *
+from app.utils.token_generation import *
 
 router = APIRouter()
 
