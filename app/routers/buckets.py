@@ -21,7 +21,7 @@ async def upload_csv(name_company: str = Form(...), csv_file: UploadFile = File(
         raise HTTPException(status_code=400, detail="Only .csv files are allowed.")
 
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    destination_name = f"{name_company.lower()}/dataset_{timestamp}.csv"
+    destination_name = f"{name_company.lower()}/data/dataset_{timestamp}.csv" 
 
     upload_file_to_bucket(csv_file, destination_name)
 

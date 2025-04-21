@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.firestore_client import db
-from app.routers import users, tokens
+from app.routers import users, tokens, model_prediction, buckets
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,4 +16,7 @@ app.add_middleware(
 
 app.include_router(users.router, prefix="/api", tags=["users"])
 app.include_router(tokens.router, prefix="/api", tags=["tokens"])
+app.include_router(model_prediction.router, prefix="/api", tags=["model"])
+app.include_router(buckets.router, prefix="/api", tags=["buckets"])
+
 
