@@ -8,6 +8,10 @@ from app.utils.token_generation import *
 
 router = APIRouter()
 
+@router.get("/hello/", tags=["users"])
+async def hello():
+    return {"response": "hello"}
+
 # Retrieve all the active users from the database
 @router.get("/get_users/", tags=["users"])
 async def get_users(token: str = Depends(get_current_user)):
@@ -41,7 +45,7 @@ async def register_user(user: UserCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
     
-@router.post("/login", tags=["users"])
+@router.post("/login/", tags=["users"])
 async def login(user: UserLogin):
     try:
         users_ref = db.collection("users")
