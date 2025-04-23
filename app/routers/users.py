@@ -8,10 +8,6 @@ from app.utils.token_generation import *
 
 router = APIRouter()
 
-@router.get("/hello/", tags=["users"])
-async def hello():
-    return {"response": "hello"}
-
 # Retrieve all the active users from the database
 @router.get("/get_users/", tags=["users"])
 async def get_users(token: str = Depends(get_current_user)):
