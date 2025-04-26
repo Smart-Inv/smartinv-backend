@@ -1,16 +1,19 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends, Query
 from google.cloud import storage
 import pandas as pd
 import os
 import joblib
 from io import BytesIO
 
+from app.utils.token_generation import *
+
 router = APIRouter()
 BUCKET_NAME = "smartinv"
 MODEL_PATH = "./app/xgboosterDemo.pkl"
 
 @router.get("/predict_values/", tags=["model"])
-async def predict_values(company_name: str = Query(...)):
+async def predict_values(token: str = Depends(get_current_user), 
+                         company_name: str = Query(...)):
 
     storage_client = storage.Client()
     

@@ -36,7 +36,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         if user_id is None or email is None:
             raise credentials_exception
 
-        return {"id": user_id, "email": email}
+        return {"user_id": user_id, "email": email}
 
     except JWTError:
         raise credentials_exception
