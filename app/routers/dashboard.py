@@ -26,9 +26,8 @@ async def dashboard_data(token: str = Depends(oauth2_scheme),
         name_company = user_data.get("name_company").replace(' ', '').lower()
         
         values = await predict_values(token, name_company)
-        
 
-        return {"response": f"worked for {email} in {name_company}: {values}"}
+        return {"response": values}
     
     except GoogleAPIError as e:
         raise HTTPException(status_code=500, detail=f"Firestore error: {e}")
