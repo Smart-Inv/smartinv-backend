@@ -1,35 +1,57 @@
-import requests
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends
+from google.cloud import storage
 from app.firestore_client import db
-from google.api_core.exceptions import GoogleAPIError
-
-from app.models.user_models import *
-from app.routers.model_prediction import *
-from app.utils.token_generation import *
+from app.utils.model_prediction_utils import load_dataset
+from app.utils.dashboard import get_stock_pie, get_total_revenues
+from app.utils.token_generation import oauth2_scheme, get_current_user
+from app.routers.model_prediction import predict_values
 
 router = APIRouter()
+BUCKET_NAME = "smartinv"
 
-# Retrieve all the active users from the database
 @router.get("/dashboard_data/", tags=["dashboard"])
-async def dashboard_data(token: str = Depends(oauth2_scheme),
-                         current_user: dict = Depends(get_current_user)):    
-    try:
-        email = current_user["email"]
-        query = db.collection("users").where("email", "==", email).limit(1).stream()
-        user_doc = next(query, None)
-        
-        if user_doc is None:
-            raise HTTPException(status_code=404, detail="User not found.")
+async def dashboard_data(
+    token: str = Depends(oauth2_scheme),
+    current_user: dict = Depends(get_current_user)
+):
+    # fetch user → company
+    email = current_user["email"]
+    query = db.collection("users").where("email", "==", email).limit(1).stream()
+    user_doc = next(query, None)
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    company = user_doc.to_dict()["name_company"].replace(" ", "").lower()
 
-        user_data = user_doc.to_dict()
+    # load df for stock & revenues
+    storage_client = storage.Client()
+    df = load_dataset(storage_client, company)
 
-        name_company = user_data.get("name_company").replace(' ', '').lower()
-        
-        values = await predict_values(token, name_company)
+    stock_pie = get_stock_pie(df)
+    revenues  = get_total_revenues(df)
 
-        return {"response": values}
-    
-    except GoogleAPIError as e:
-        raise HTTPException(status_code=500, detail=f"Firestore error: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
+    # build items list
+    items = [c.replace("nombre_producto_", "") for c in df.columns
+             if c.startswith("nombre_producto_")]
+
+    # pull full predictions table from your existing endpoint
+    full = await predict_values(token, company)
+
+    # for each item, grab the row for the most recent (anio,mes)
+    predictions = []
+    for item in items:
+        col = f"nombre_producto_{item}"
+        rows = [r for r in full if r.get(col) == 1]
+        if not rows:
+            continue
+        latest = max(rows, key=lambda r: (r["anio"], r["mes"]))
+        predictions.append({
+            "item":       item,
+            "prediction": float(latest["prediction"])
+        })
+
+    return {
+        "stock_pie":   stock_pie,
+        "revenues":    revenues,
+        "items":       items,
+        "predictions": predictions
+    }
