@@ -55,7 +55,8 @@ def get_total_revenues(df: pd.DataFrame, months: int = 5) -> list[dict]:
     ]
 
 
-def get_stock_evolution_and_prediction(
+def get_stock_evolution(
+    client: storage.Client,
     company_name: str,
     item_name: str,
     months: int = 3
@@ -63,14 +64,12 @@ def get_stock_evolution_and_prediction(
     """
     Returns:
       - 'series': [{ period: "YYYY-MM", stock: float }] for the last `months` months
-      - 'prediction': { period: "YYYY-MM", value: float } for next month
     """
-    storage_client = storage.Client()
-    df = load_dataset(storage_client, company_name.lower())
+    df = load_dataset(client, company_name.lower())
     df['period'] = pd.to_datetime(
         df['anio'].astype(str) + '-' + df['mes'].astype(str) + '-01'
     )
-    col_prod = f'nombre_producto_{item_name}'
+    col_prod = item_name
     if col_prod not in df.columns:
         raise HTTPException(status_code=400, detail=f"Product '{item_name}' not found")
     df_p = df[df[col_prod] == 1].copy()
@@ -88,12 +87,7 @@ def get_stock_evolution_and_prediction(
         {'period': str(row['period']), 'stock': float(row['stock_final'])}
         for _, row in agg.iterrows()
     ]
-    next_period = (max_period + relativedelta(months=1)).to_period('M').strftime('%Y-%m')
-    X_next = df_p[df_p['period'] == max_period].drop(columns=['reposicion_este_mes', 'period'])
-    model = joblib.load(MODEL_PATH)
-    pred = model.predict(X_next).round()
-    value = float(pred[0]) if len(pred) else 0.0
+
     return {
         'series': series,
-        'prediction': {'period': next_period, 'value': value}
     }

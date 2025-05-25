@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from google.cloud import storage
 from app.firestore_client import db
 from app.utils.model_prediction_utils import load_dataset
-from app.utils.dashboard import get_stock_pie, get_total_revenues
+from app.utils.dashboard import get_stock_pie, get_total_revenues, get_stock_evolution
 from app.utils.token_generation import oauth2_scheme, get_current_user
 from app.routers.model_prediction import predict_values
 
@@ -26,7 +26,7 @@ async def dashboard_data(
     storage_client = storage.Client()
     df = load_dataset(storage_client, company)
 
-    stock_pie = get_stock_pie(df)
+    #stock_pie = get_stock_pie(df)
     revenues  = get_total_revenues(df)
 
     # build items list
@@ -38,20 +38,25 @@ async def dashboard_data(
 
     # for each item, grab the row for the most recent (anio,mes)
     predictions = []
+    series = []
     for item in items:
         col = f"nombre_producto_{item}"
+
         rows = [r for r in full if r.get(col) == 1]
         if not rows:
             continue
+
         latest = max(rows, key=lambda r: (r["anio"], r["mes"]))
         predictions.append({
             "item":       item,
             "prediction": float(latest["prediction"])
         })
 
+        series.append(get_stock_evolution(storage_client, company, col))
+
     return {
-        "stock_pie":   stock_pie,
         "revenues":    revenues,
         "items":       items,
-        "predictions": predictions
+        "predictions": predictions,
+        "series": series
     }
