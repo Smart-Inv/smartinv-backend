@@ -2,3 +2,4 @@
 .env
 clave-servicio.json
 __pycache__
+.DS_Store
