@@ -38,7 +38,7 @@ async def dashboard_data(
 
     # for each item, grab the row for the most recent (anio,mes)
     predictions = []
-    series = []
+    series = {}
     for item in items:
         col = f"nombre_producto_{item}"
 
@@ -52,7 +52,7 @@ async def dashboard_data(
             "prediction": float(latest["prediction"])
         })
 
-        series.append(get_stock_evolution(storage_client, company, col))
+        series[col] = get_stock_evolution(storage_client, company, col)
 
     return {
         "revenues":    revenues,
